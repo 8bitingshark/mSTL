@@ -34,11 +34,14 @@ namespace mstl {
 		size_type space{};
 
 		vector_rep() : alloc{ A{} }, sz{ 0 }, elem{ nullptr }, space{ 0 } {}
+
 		vector_rep(const A& in_allocator) : alloc{ in_allocator }, sz{ 0 }, elem{ nullptr }, space{ 0 } {}
+
 		vector_rep(const A& in_allocator, size_type n)
 			: alloc{ in_allocator }, sz{ 0 }, elem{ alloc_traits::allocate(alloc, n) }, space{ n } {
 			std::cout << "ctor vector_rep called\n";
 		}
+
 		~vector_rep() {
 			std::cout << "dtor vector_rep called\n";
 			alloc_traits::deallocate(alloc, elem, space);
@@ -49,6 +52,7 @@ namespace mstl {
 	/// STL vector implementation
 	/// using alloc_traits
 	/// 
+	/// (vector and vector_rep use the same allocator)
 
 	template<typename T, typename A = std::allocator<T>>
 		requires Element<T>

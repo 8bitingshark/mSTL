@@ -43,12 +43,6 @@ namespace mstl {
 	/// Tree Iterator
 	/// ---------------------------------------------------------------
 	/// In-order bidirectional iterator over base nodes
-	///
-	/// [?] Why defining outside and not inside?
-	/// Anche EASTL definisce l'iteratore fuori dalla classe RBTree
-	/// per esempio, con friend sugli operatori binari ecc...
-	/// 
-	/// [?] C'è differenza tra curr{nullptr} e curr{}?
 
 	template<typename node_t, bool IsConst>
 	class tree_iterator {
@@ -195,7 +189,10 @@ namespace mstl {
 	/// ---------------------------------------------------------------
 	/// Tree base
 	/// ---------------------------------------------------------------
-	/// memory management, compare and node clear when destructed
+	/// Handles allocation, comparison, node destruction.
+	/// It is designed to be inherited by specialized trees
+	/// such as bst_tree, avl_tree, rb_tree, map, multimap, etc.
+	/// ---------------------------------------------------------------
 
 	template<
 		typename T, 
@@ -207,7 +204,7 @@ namespace mstl {
 
 	public:
 
-		using value_type = T;
+		using value_type = typename node_t<T>::value_type; // supports pair<const K,V>
 		using alloc_type = A;
 		using alloc_traits = std::allocator_traits<A>;
 		using size_type = typename alloc_traits::size_type;
