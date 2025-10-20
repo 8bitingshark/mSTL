@@ -39,6 +39,143 @@ namespace mstl {
 	};
 
 	/// ---------------------------------------------------------------
+	/// Tree global functions
+	/// ---------------------------------------------------------------
+
+	inline node_base* TreeMin(node_base* node) noexcept {
+		
+		while (node && node->mp_Left)
+		{
+			node = node->mp_Left;
+		}
+		return node;
+	}
+
+	inline node_base* TreeMax(node_base* node) noexcept {
+
+		while (node && node->mp_Right)
+		{
+			node = node->mp_Right;
+		}
+		return node;
+	}
+
+	inline node_base* TreeSuccessor(node_base* n) noexcept {
+
+		if (!n) return nullptr;
+
+		// Case 1: there is a right sub-tree: find the minimum of this right sub-tree
+		if (n->mp_Right)
+		{
+			return TreeMin(n->mp_Right);
+		}
+
+		// Case 2: go up until you are left child 
+		auto* p = n->mp_Parent;
+
+		while (p && n == p->mp_Right)
+		{
+			n = p;
+			p = p->mp_Parent;
+		}
+
+		return p;
+	}
+
+	inline node_base* TreePredecessor(node_base* n) noexcept {
+
+		if (!n) return nullptr;
+
+		if (n->mp_Left)
+		{
+			return TreeMax(n->mp_Left);
+		}
+
+		auto* p = n->mp_Parent;
+
+		while (p && n == p->mp_Left) 
+		{
+			n = p;
+			p = p->mp_Parent;
+		}
+
+		return p;
+	}
+
+	/// Compare passed by-value because
+	/// usually stateless, avoid lifetime issues
+	/// good for inlining and compiler optimizations
+
+	template <typename NodeT, typename Compare, typename Key>
+	inline node_base* TreeFind(node_base* root, const Key& key, Compare comp) noexcept 
+	{
+		while (root) 
+		{
+			const auto& val = static_cast<const NodeT*>(root)->m_Val;
+
+			if (comp(key, val))
+			{
+				root = root->mp_Left;
+			}	
+			else if (comp(val, key))
+			{
+				root = root->mp_Right;
+			}	
+			else
+			{
+				return root;
+			}
+				
+		}
+
+		return nullptr;
+	}
+
+	template <typename NodeT, typename Compare, typename Key>
+	inline node_base* TreeLowerBound(node_base* root, const Key& key, Compare comp) noexcept 
+	{
+		node_base* res = nullptr;
+
+		while (root) 
+		{
+			const auto& val = static_cast<const NodeT*>(root)->m_Val;
+
+			if (!comp(val, key)) 
+			{
+				res = root;
+				root = root->mp_Left;
+			}
+			else 
+			{
+				root = root->mp_Right;
+			}
+		}
+		return res;
+	}
+
+	template <typename NodeT, typename Compare, typename Key>
+	inline node_base* TreeUpperBound(node_base* root, const Key& key, Compare comp) noexcept 
+	{
+		node_base* res = nullptr;
+
+		while (root) 
+		{
+			const auto& val = static_cast<const NodeT*>(root)->m_Val;
+
+			if (comp(key, val)) 
+			{
+				res = root;
+				root = root->mp_Left;
+			}
+			else 
+			{
+				root = root->mp_Right;
+			}
+		}
+		return res;
+	}
+	
+	/// ---------------------------------------------------------------
 	/// Tree Iterator
 	/// ---------------------------------------------------------------
 	/// In-order bidirectional iterator over base nodes
@@ -54,10 +191,10 @@ namespace mstl {
 	public:
 
 		using iterator_category = std::bidirectional_iterator_tag;
-		using value_type = typename node_t::value_type;
-		using difference_type = std::ptrdiff_t;
-		using reference = std::conditional_t<IsConst, const value_type&, value_type&>;
-		using pointer = std::conditional_t<IsConst, const value_type*, value_type*>;
+		using value_type        = typename node_t::value_type;
+		using difference_type   = std::ptrdiff_t;
+		using reference         = std::conditional_t<IsConst, const value_type&, value_type&>;
+		using pointer           = std::conditional_t<IsConst, const value_type*, value_type*>;
 
 		// required for some algorithms
 		tree_iterator() = default;
@@ -73,7 +210,7 @@ namespace mstl {
 		/// This constructor exists only for const iterators
 
 		template<bool C = IsConst, typename = std::enable_if_t<C>>
-		tree_iterator(const tree_iterator<value_type, false>& other)
+		tree_iterator(const tree_iterator<node_t, false>& other)
 			: curr{ other.curr } {
 		}
 
@@ -84,7 +221,7 @@ namespace mstl {
 		friend bool operator!=(const tree_iterator& a, const tree_iterator& b) { return !(a == b); }
 
 		tree_iterator& operator++() noexcept {
-			curr = successor(curr);
+			curr = mstl::TreeSuccessor(curr);
 			return *this;
 		}
 
@@ -96,7 +233,7 @@ namespace mstl {
 		}
 
 		tree_iterator& operator--() noexcept {
-			curr = predecessor(curr);
+			curr = mstl::TreePredecessor(curr);
 			return *this;
 		}
 
@@ -108,81 +245,15 @@ namespace mstl {
 
 	private:
 
-		// === Helpers ===
-		// they are static because they are indipendent from an object
-		// if you don't mark static the compiler WILL generate
-		// this pointer and it is a waste
-
-		static base_node_type* min_node(base_node_type* n) noexcept
-		{
-			// find the leaf
-			while (n && n->mp_Left)
-			{
-				n = n->mp_Left;
-			}
-
-			return n;
-		}
-
-		static base_node_type* max_node(base_node_type* n) noexcept
-		{
-			// find the leaf
-			while (n && n->mp_Right)
-			{
-				n = n->mp_Right;
-			}
-
-			return n;
-		}
-
-		static base_node_type* successor(base_node_type* n) noexcept {
-
-			if (!n) return nullptr;
-
-			// Case 1: there is a right sub-tree: find the minimum of this right sub-tree
-			if (n->mp_Right)
-			{
-				return min_node(n->mp_Right);
-			}
-
-			// Case 2: go up until you are left child 
-			auto* p = n->mp_Parent;
-
-			while (p && n == p->mp_Right)
-			{
-				n = p;
-				p = p->mp_Parent;
-			}
-
-			return p;
-		}
-
-		static base_node_type* predecessor(base_node_type* n) noexcept {
-
-			if (!n) return nullptr;
-
-			// case 1: left child exist so find the max
-			if (n->mp_Left)
-			{
-				return max_node(n->mp_Left);
-			}
-
-			// case 2: no left child, go up until you are a right child 
-			// and return parent
-			auto* p = n->mp_Parent;
-			while (p && n == p->mp_Left)
-			{
-				n = p;
-				p = p->mp_Parent;
-			}
-
-			return p;
-		}
-
 		// friend class
 		// to access curr node from tree
 		template<typename T, typename Compare, typename Alloc, template<class> class node_t>
 		friend class tree_base;
+
+		// all specializations 
+		// can access each other curr
+		template<typename, bool>
+		friend class tree_iterator;
 	};
 
 	/// ---------------------------------------------------------------
@@ -203,16 +274,20 @@ namespace mstl {
 
 	public:
 
-		using value_type = typename node_t<T>::value_type; // supports pair<const K,V>
-		using alloc_type = A;
-		using alloc_traits = std::allocator_traits<A>;
-		using size_type = typename alloc_traits::size_type;
+		using value_type      = typename node_t<T>::value_type; // supports pair<const K,V>
+		using key_type        = value_type;
+		using key_compare     = compare;
+		using value_compare   = compare;
+		using alloc_type      = A;
+		using alloc_traits    = std::allocator_traits<A>;
+		using size_type       = typename alloc_traits::size_type;
+		using difference_type = std::ptrdiff_t;
 
-		using node_type = node_t<value_type>;
-		using node_alloc = typename alloc_traits::template rebind_alloc<node_type>;
+		using node_type   = node_t<value_type>;
+		using node_alloc  = typename alloc_traits::template rebind_alloc<node_type>;
 		using node_traits = std::allocator_traits<node_alloc>;
 
-		// === Constructors ===
+		// ============== Ctors =================
 
 		tree_base()
 			: m_ValueAlloc{ alloc_type{} }
@@ -244,14 +319,16 @@ namespace mstl {
 
 	protected:
 
+		using base_node_type = node_base;
+
 		[[no_unique_address]] alloc_type m_ValueAlloc{};
 		[[no_unique_address]] node_alloc m_NodeAlloc{ m_ValueAlloc };
 		[[no_unique_address]] compare m_Comp{};
 
 		size_type  m_Size{};
-		node_type* mp_Root{ nullptr };
+		node_type* mp_Root{};
 
-		// helpers
+		// ================= Alloc/Dealloc =================
 
 		node_type* DoAllocateNode() {
 			return node_traits::allocate(m_NodeAlloc, 1);
@@ -260,6 +337,8 @@ namespace mstl {
 		void DoDeallocateNode(node_type* p) noexcept {
 			node_traits::deallocate(m_NodeAlloc, p, 1);
 		}
+
+		// ================ Cleanup =================
 
 		void DoDestroyNode(node_type* p) noexcept {
 			node_traits::destroy(m_NodeAlloc, p);
@@ -285,7 +364,6 @@ namespace mstl {
 		}
 
 		template<typename U, typename C, typename A, template<class> class N>
-
 		friend void swap(tree_base<U, C, A, N>&, tree_base<U, C, A, N>&) noexcept;
 	};
 

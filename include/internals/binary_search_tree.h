@@ -26,24 +26,25 @@ namespace mstl {
 
 		using base_type      = tree_base<T, compare, A, node_t>;
 		using node_type      = typename base_type::node_type;
-		using base_node_type = node_base;
+		using base_node_type = typename base_type::base_node_type;
 		using node_alloc     = typename base_type::node_alloc;
 		using node_traits    = typename base_type::node_traits;
 
 	public:
 
-		using key_type        = typename node_type::value_type;
-		using value_type      = typename node_type::value_type;
+		using key_type        = typename base_type::key_type;
+		using value_type      = typename base_type::value_type;
+		using key_compare     = typename base_type::key_compare;
+		using value_compare   = typename base_type::value_compare;
 		using size_type       = typename base_type::size_type;
-		using difference_type = std::ptrdiff_t;
-		using key_compare     = compare;
-		using value_compare   = compare;
-		using alloc_type      = A;
+		using difference_type = typename base_type::difference_type;
+		using alloc_type      = typename base_type::alloc_type;
 
 		using iterator       = tree_iterator<node_type, false>;
 		using const_iterator = tree_iterator<node_type, true>;
 
-		// === Constructors ===
+		// ================= Ctors =================
+		
 		// C++20: inherites constructors
 		using base_type::base_type;
 
@@ -66,7 +67,7 @@ namespace mstl {
 				insert(v);
 		}
 
-		// === Copy semantics ===
+		// ============= Copy semantics =================
 
 		bst_tree(const bst_tree& other)
 			: base_type(other.m_ValueAlloc, other.m_Comp) {
@@ -83,7 +84,7 @@ namespace mstl {
 			return *this;
 		}
 
-		// === Move semantics ===
+		// ============= Move semantics =================
 
 		bst_tree(const bst_tree&& other) noexcept {
 
@@ -96,45 +97,56 @@ namespace mstl {
 			return *this;
 		}
 
-		/// === Iterators ===
+		// ================= Iterators =================
 
-		iterator begin() noexcept { return iterator{ min_node() }; }
-		const_iterator begin() const noexcept { return const_iterator{ max_node() }; }
-		//const_iterator cbegin() const noexcept { return const_iterator{ leftmost() }; }
+		iterator begin() noexcept { return iterator{ mstl::TreeMin(this->mp_Root) }; }
+		const_iterator cbegin() const noexcept { return const_iterator{ mstl::TreeMin(this->mp_Root) }; }
 
 		iterator end() noexcept { return iterator{ nullptr }; }
-		const_iterator end() const noexcept { return const_iterator{ nullptr }; }
-		//const_iterator cend() const noexcept { return const_iterator{ nullptr }; }
+		const_iterator cend() const noexcept { return const_iterator{ nullptr }; }
 
-		/// === Capacity ===
+		// ================= Capacity =================
 
 		size_type size() const noexcept { return this->m_Size; }
 
 		bool empty() const noexcept { return this->m_Size == 0; }
 
-		/// ================= Access =================
+		// ================= Access =================
 
 		// lookup
 
-		iterator find(const key_type& v) noexcept { return iterator{ find_node(v) }; }
-		const_iterator find(const key_type& v) const noexcept { return const_iterator{ find_node(v) }; }
+		const_iterator find(const key_type& key) const noexcept { 
+			return const_iterator{ mstl::TreeFind<node_type>(this->mp_Root, key, this->m_Comp) };
+		}
 
-		iterator lower_bound(const key_type& v) noexcept { return iterator{ lower_bound_node(v) }; }
-		const_iterator lower_bound(const key_type& v) const noexcept { return const_iterator{ lower_bound_node(v) }; }
+		iterator lower_bound(const key_type& key) noexcept { 
+			return iterator{ mstl::TreeLowerBound<node_type>(this->mp_Root, key, this->m_Comp) };
+		}
 
-		iterator upper_bound(const key_type& v) noexcept { return iterator{ upper_bound_node(v) }; }
-		const_iterator upper_bound(const key_type& v) const noexcept { return const_iterator{ upper_bound_node(v) }; }
+		const_iterator lower_bound(const key_type& key) const noexcept { 
+			return const_iterator{ mstl::TreeLowerBound<node_type>(this->mp_Root, key, this->m_Comp) };
+		}
+
+		iterator upper_bound(const key_type& key) noexcept { 
+			return iterator{ mstl::TreeUpperBound<node_type>(this->mp_Root, key, this->m_Comp) };
+		}
+
+		const_iterator upper_bound(const key_type& key) const noexcept { 
+			return const_iterator{ mstl::TreeUpperBound<node_type>(this->mp_Root, key, this->m_Comp) };
+		}
 
 		bool contains(const key_type& key) const noexcept {
-			return find_node(key) != nullptr;
+			return (mstl::TreeFind<node_type>(this->mp_Root, key, this->m_Comp)) != nullptr;
 		}
 
 		std::pair<iterator, iterator> equal_range(const key_type& key) noexcept {
-			return { lower_bound(key), upper_bound(key) };
+			return { mstl::TreeLowerBound<node_type>(this->mp_Root, key, this->m_Comp),
+					 mstl::TreeUpperBound<node_type>(this->mp_Root, key, this->m_Comp) };
 		}
 
 		std::pair<const_iterator, const_iterator> equal_range(const key_type& key) const noexcept {
-			return { lower_bound(key), upper_bound(key) };
+			return { mstl::TreeLowerBound<node_type>(this->mp_Root, key, this->m_Comp),
+					 mstl::TreeUpperBound<node_type>(this->mp_Root, key, this->m_Comp) };
 		}
 
 		/// ================= Modifiers =================
@@ -168,9 +180,9 @@ namespace mstl {
 		}
 
 		// erase by key
-		size_type erase(const key_type& v) {
+		size_type erase(const key_type& key) {
 			
-			base_node_type* z = find_node(v); 
+			base_node_type* z = mstl::TreeFind<node_type>(this->mp_Root, key, this->m_Comp);
 			if (!z) return 0;
 			erase_node(z);
 			return 1;
@@ -181,7 +193,7 @@ namespace mstl {
 			
 			base_node_type* z = pos.curr;
 			if (!z) return end();
-			base_node_type* s = successor(z);
+			base_node_type* s = mstl::TreeSuccessor(z);
 			erase_node(z);
 			return iterator{ s };
 		}
@@ -210,149 +222,6 @@ namespace mstl {
 	private:
 
 		// ================= Helpers =================
-
-		static base_node_type* min_node(base_node_type* i_node) noexcept
-		{
-			while (i_node && i_node->mp_Left) {
-			
-				i_node = i_node->mp_Left;
-			}
-				
-			return i_node;
-		}
-
-		base_node_type* min_node() const noexcept { return min_node(this->mp_Root); }
-
-		static base_node_type* max_node(base_node_type* i_node) noexcept
-		{
-			while (i_node && i_node->mp_Right)
-			{
-				i_node = i_node->mp_Right;
-			}
-
-			return i_node;
-		}
-
-		base_node_type* max_node() const noexcept { return max_node(this->mp_Root); }
-
-		static base_node_type* successor(base_node_type* n) noexcept {
-
-			if (!n) return nullptr;
-
-			// Case 1: there is a right sub-tree: find the minimum of this right sub-tree
-			if (n->mp_Right)
-			{
-				return min_node(n->mp_Right);
-			}
-
-			// Case 2: go up until you are left child 
-			auto* p = n->mp_Parent;
-
-			while (p && n == p->mp_Right)
-			{
-				n = p;
-				p = p->mp_Parent;
-			}
-
-			return p;
-		}
-
-		static base_node_type* predecessor(base_node_type* n) noexcept {
-
-			if (!n) return nullptr;
-
-			// case 1: left child exist so find the max
-			if (n->mp_Left)
-			{
-				return max_node(n->mp_Left);
-			}
-
-			// case 2: no left child, go up until you are a right child 
-			// and return parent
-			auto* p = n->mp_Parent;
-			while (p && n == p->mp_Left)
-			{
-				n = p;
-				p = p->mp_Parent;
-			}
-
-			return p;
-		}
-
-		base_node_type* find_node(const key_type& v) const noexcept {
-		
-			base_node_type* current = this->mp_Root;
-
-			while (current) {
-			
-				const value_type& val = static_cast<const node_type*>(current)->m_Val;
-
-				if (this->m_Comp(v, val))
-				{
-					current = current->mp_Left;
-				}
-				else if (this->m_Comp(val, v))
-				{
-					current = current->mp_Right;
-				}
-				else
-				{
-					return current;
-				}
-			}
-
-			return nullptr;
-		}
-
-		// first element >= key
-		base_node_type* lower_bound_node(const key_type& key) const noexcept {
-
-			base_node_type* current = this->mp_Root;
-			base_node_type* result  = nullptr;
-
-			while (current)
-			{
-				const value_type& val = static_cast<const node_type*>(current)->m_Val;
-
-				if (!this->m_Comp(val, key))
-				{
-					// val >= key
-					result = current;
-					current = current->mp_Left;
-				}
-				else
-				{
-					current = current->mp_Right;
-				}
-			}
-
-			return result;
-		}
-
-		// first element > key
-		base_node_type* upper_bound_node(const key_type& key) const {
-
-			base_node_type* current = this->mp_Root;
-			base_node_type* result  = nullptr;
-
-			while (current) {
-
-				const value_type& val = static_cast<const node_type*>(current)->m_Val;
-				
-				if (this->m_Comp(key, val)) 
-				{
-					// val > key
-					result = current;
-					current = current->mp_Left;
-				}
-				else 
-				{
-					current = current->mp_Right;
-				}
-			}
-
-			return result;
-		}
 
 		template<typename U>
 		std::pair<base_node_type*, bool> insert_impl(U&& v)
@@ -474,7 +343,7 @@ namespace mstl {
 				// child of z, otherwise it is a left
 				// child
 
-				base_node_type* s = successor(z);
+				base_node_type* s = mstl::TreeSuccessor(z);
 
 				if (s->mp_Parent != z)
 				{
