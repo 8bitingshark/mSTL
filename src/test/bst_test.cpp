@@ -9,7 +9,7 @@ void mstl::bst_test()
     std::cout << "=============================\n";
 
     // Base insertion
-    bst<int> t;
+    bst_tree<int> t;
     std::vector<int> values = { 8, 3, 10, 1, 6, 14, 4, 7, 13 };
 
     for (int v : values) {

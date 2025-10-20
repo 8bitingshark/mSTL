@@ -17,7 +17,7 @@ namespace mstl {
 	template<typename T>
 	struct avl_node : public node<T> {
 
-		size_t m_Height{};
+		int m_Height{}; // usually enough
 
 		explicit avl_node(const T& v)
 			: node<T>(v) {
@@ -38,25 +38,87 @@ namespace mstl {
 	/// ---------------------------------------------------------------
 	/// Balance Property: | left_height - right_height | <= 1
 	
-	template<typename T, typename compare = std::less<T>, typename A = std::allocator<T>>
-	class avl : public tree_base<T, compare, A, avl_node> {
+	template<
+		typename T,
+		typename compare = std::less<T>,
+		typename A = std::allocator<T>,
+		template<class> class node_t = node
+	>
+	class avl_tree : public tree_base<T, compare, A, node_t> {
 
-		using base_type = tree_base<T, compare, A>;
-		using node_type = avl_node<T>;
+		using base_type = tree_base<T, compare, A, node_t>;
+		using node_type = typename base_type::node_type;
 		using base_node_type = node_base;
+		using node_alloc = typename base_type::node_alloc;
+		using node_traits = typename base_type::node_traits;
 
 	public:
-		using typename base_type::iterator;
-		using typename base_type::const_iterator;
+		
+		using key_type = typename node_type::value_type;
+		using value_type = typename node_type::value_type;
+		using size_type = typename base_type::size_type;
+		using difference_type = std::ptrdiff_t;
+		using key_compare = compare;
+		using value_compare = compare;
+		using alloc_type = A;
 
-		// if in the future you want to modify public visibility
-		// of the base class you can export them
-		// using typename base_type::key_type;
-		// using typename base_type::value_type;
+		using iterator = tree_iterator<node_type, false>;
+		using const_iterator = tree_iterator<node_type, true>;
 	
+		// === Constructors ===
+		// C++20: inherites constructors
 		using base_type::base_type;
-		explicit avl(const compare& c, const A& a = A{}) : base_type(a, c) {}
+
+		explicit avl_tree(const alloc_type& a = alloc_type{}, const compare& c = compare{})
+			: base_type(a,c) {
+		}
+
+		template<typename It = std::input_iterator>
+		avl_tree(It first, It last, const alloc_type& a = alloc_type{}, const compare& c = compare{})
+			: base_type(a, c)
+		{
+			for (; first != last; ++first)
+				insert(*first);
+		}
+
+		avl_tree(std::initializer_list<T> il, const alloc_type& a = alloc_type{}, const compare& c = compare{})
+			: base_type(a, c)
+		{
+			for (const auto& v : il)
+				insert(v);
+		}
 	
+		// === Copy semantics ===
+
+		avl_tree(const avl_tree& other)
+			: base_type(other.m_ValueAlloc, other.m_Comp) {
+
+			for (const auto& v : other) insert(v);
+		}
+
+		avl_tree& operator=(const avl_tree& other) {
+
+			if (this == &other) return *this;
+
+			avl_tree tmp(other);
+			swap(tmp);
+			return *this;
+		}
+
+		// === Move semantics ===
+
+		avl_tree(const avl_tree&& other) noexcept {
+
+			swap(other);
+		}
+
+		avl_tree& operator=(avl_tree&& other) noexcept {
+
+			if (this != &other) swap(other);
+			return *this;
+		}
+
+		/// === Iterators ===
 	};
 }
 

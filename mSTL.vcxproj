@@ -128,7 +128,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="src\test\bst_test.cpp" />
-    <ClCompile Include="src\list_test.cpp" />
+    <ClCompile Include="src\test\list_test.cpp" />
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
   <ItemGroup>

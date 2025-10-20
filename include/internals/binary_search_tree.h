@@ -22,7 +22,7 @@ namespace mstl {
 		typename A = std::allocator<T>,
 		template<class> class node_t = node
 	>
-	class bst : public tree_base<T, compare, A, node_t> {
+	class bst_tree : public tree_base<T, compare, A, node_t> {
 
 		using base_type      = tree_base<T, compare, A, node_t>;
 		using node_type      = typename base_type::node_type;
@@ -47,19 +47,19 @@ namespace mstl {
 		// C++20: inherites constructors
 		using base_type::base_type;
 
-		explicit bst(const alloc_type& a = alloc_type{}, const compare& c = compare{})
+		explicit bst_tree(const alloc_type& a = alloc_type{}, const compare& c = compare{})
 			: base_type(a,c){
 		}
 
 		template<typename It = std::input_iterator>
-		bst(It first, It last, const alloc_type& a = alloc_type{}, const compare& c = compare{})
+		bst_tree(It first, It last, const alloc_type& a = alloc_type{}, const compare& c = compare{})
 			: base_type(a,c)
 		{
 			for (; first != last; ++first)
 				insert(*first);
 		}
 
-		bst(std::initializer_list<T> il, const alloc_type& a = alloc_type{}, const compare& c = compare{})
+		bst_tree(std::initializer_list<T> il, const alloc_type& a = alloc_type{}, const compare& c = compare{})
 			: base_type(a, c)
 		{
 			for (const auto& v : il)
@@ -68,29 +68,29 @@ namespace mstl {
 
 		// === Copy semantics ===
 
-		bst(const bst& other)
+		bst_tree(const bst_tree& other)
 			: base_type(other.m_ValueAlloc, other.m_Comp) {
 
 			for (const auto& v : other) insert(v);
 		}
 
-		bst& operator=(const bst& other) {
+		bst_tree& operator=(const bst_tree& other) {
 
 			if (this == &other) return *this;
 
-			bst tmp(other);
+			bst_tree tmp(other);
 			swap(tmp);
 			return *this;
 		}
 
 		// === Move semantics ===
 
-		bst(const bst&& other) noexcept {
+		bst_tree(const bst_tree&& other) noexcept {
 
 			swap(other);
 		}
 
-		bst& operator=(bst&& other) noexcept {
+		bst_tree& operator=(bst_tree&& other) noexcept {
 
 			if (this != &other) swap(other);
 			return *this;
@@ -186,7 +186,7 @@ namespace mstl {
 			return iterator{ s };
 		}
 
-		void swap(bst& other) noexcept {
+		void swap(bst_tree& other) noexcept {
 			using std::swap;
 			swap(this->m_ValueAlloc, other.m_ValueAlloc);
 			swap(this->m_NodeAlloc, other.m_NodeAlloc);
@@ -547,19 +547,19 @@ namespace mstl {
 	// binary operators
 
 	template<typename T, typename compare, typename A>
-	bool operator==(const bst<T, compare, A>& a, const bst<T, compare, A>& b) {
+	bool operator==(const bst_tree<T, compare, A>& a, const bst_tree<T, compare, A>& b) {
 		if (a.size() != b.size()) return false;
 		return std::equal(a.begin(), a.end(), b.begin(), b.end());
 	}
 
 	template<typename T, typename compare, typename A>
-	bool operator!=(const bst<T, compare, A>& a, const bst<T, compare, A>& b) {
+	bool operator!=(const bst_tree<T, compare, A>& a, const bst_tree<T, compare, A>& b) {
 		return !(a == b);
 	}
 
 	// utility
 	template<typename T, typename compare, typename A>
-	void swap(bst<T, compare, A>& a, bst<T, compare, A>& b) noexcept {
+	void swap(bst_tree<T, compare, A>& a, bst_tree<T, compare, A>& b) noexcept {
 		a.swap(b);
 	}
 
