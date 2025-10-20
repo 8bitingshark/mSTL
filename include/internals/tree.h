@@ -1,7 +1,6 @@
 #ifndef MSTL_TREE_H
 #define MSTL_TREE_H
 
-#include "concepts_utils.h"
 #include <memory>
 
 namespace mstl {
@@ -14,9 +13,9 @@ namespace mstl {
 
 	struct node_base {
 
-		node_base* mp_Left{ nullptr };
-		node_base* mp_Right{ nullptr };
-		node_base* mp_Parent{ nullptr };
+		node_base* mp_Left{};
+		node_base* mp_Right{};
+		node_base* mp_Parent{};
 	};
 
 	/// ---------------------------------------------------------------
@@ -25,9 +24,9 @@ namespace mstl {
 	/// [?]: why T&& constructor
 
 	template<typename T>
-		requires Element<T>
 	struct node : public node_base {
 
+		using value_type = T;
 		T m_Val{};
 
 		explicit node(const T& v) : node_base{}, m_Val(v) {}
@@ -41,12 +40,169 @@ namespace mstl {
 	};
 
 	/// ---------------------------------------------------------------
+	/// Tree Iterator
+	/// ---------------------------------------------------------------
+	/// In-order bidirectional iterator over base nodes
+	///
+	/// [?] Why defining outside and not inside?
+	/// Anche EASTL definisce l'iteratore fuori dalla classe RBTree
+	/// per esempio, con friend sugli operatori binari ecc...
+	/// 
+	/// [?] C'è differenza tra curr{nullptr} e curr{}?
+
+	template<typename node_t, bool IsConst>
+	class tree_iterator {
+
+		using base_node_type = node_base;
+		using node_type = node_t;
+
+		base_node_type* curr{};
+
+	public:
+
+		using iterator_category = std::bidirectional_iterator_tag;
+		using value_type = typename node_t::value_type;
+		using difference_type = std::ptrdiff_t;
+		using reference = std::conditional_t<IsConst, const value_type&, value_type&>;
+		using pointer = std::conditional_t<IsConst, const value_type*, value_type*>;
+
+		// required for some algorithms
+		tree_iterator() = default;
+
+		explicit tree_iterator(base_node_type* n) : curr(n) {}
+
+		/// Constructor for const conversion
+		/// 
+		/// std::enable_if_t<C> is defined only when C is true
+		/// if C is false the compiler removes this overload (SFINAE)
+		/// because enable_if is ill-formed, so constructor is ignored
+		/// 
+		/// This constructor exists only for const iterators
+
+		template<bool C = IsConst, typename = std::enable_if_t<C>>
+		tree_iterator(const tree_iterator<value_type, false>& other)
+			: curr{ other.curr } {
+		}
+
+		reference operator*()  const { return static_cast<node_type*>(curr)->m_Val; }
+		pointer   operator->() const { return std::addressof(static_cast<node_type*>(curr)->m_Val); }
+
+		friend bool operator==(const tree_iterator& a, const tree_iterator& b) { return a.curr == b.curr; }
+		friend bool operator!=(const tree_iterator& a, const tree_iterator& b) { return !(a == b); }
+
+		tree_iterator& operator++() noexcept {
+			curr = successor(curr);
+			return *this;
+		}
+
+		tree_iterator& operator++(int) noexcept {
+
+			tree_iterator tmp = *this;
+			++(*this);
+			return tmp;
+		}
+
+		tree_iterator& operator--() noexcept {
+			curr = predecessor(curr);
+			return *this;
+		}
+
+		tree_iterator operator--(int) noexcept {
+			tree_iterator tmp = *this;
+			--(*this);
+			return tmp;
+		}
+
+	private:
+
+		// === Helpers ===
+		// they are static because they are indipendent from an object
+		// if you don't mark static the compiler WILL generate
+		// this pointer and it is a waste
+
+		static base_node_type* min_node(base_node_type* n) noexcept
+		{
+			// find the leaf
+			while (n && n->mp_Left)
+			{
+				n = n->mp_Left;
+			}
+
+			return n;
+		}
+
+		static base_node_type* max_node(base_node_type* n) noexcept
+		{
+			// find the leaf
+			while (n && n->mp_Right)
+			{
+				n = n->mp_Right;
+			}
+
+			return n;
+		}
+
+		static base_node_type* successor(base_node_type* n) noexcept {
+
+			if (!n) return nullptr;
+
+			// Case 1: there is a right sub-tree: find the minimum of this right sub-tree
+			if (n->mp_Right)
+			{
+				return min_node(n->mp_Right);
+			}
+
+			// Case 2: go up until you are left child 
+			auto* p = n->mp_Parent;
+
+			while (p && n == p->mp_Right)
+			{
+				n = p;
+				p = p->mp_Parent;
+			}
+
+			return p;
+		}
+
+		static base_node_type* predecessor(base_node_type* n) noexcept {
+
+			if (!n) return nullptr;
+
+			// case 1: left child exist so find the max
+			if (n->mp_Left)
+			{
+				return max_node(n->mp_Left);
+			}
+
+			// case 2: no left child, go up until you are a right child 
+			// and return parent
+			auto* p = n->mp_Parent;
+			while (p && n == p->mp_Left)
+			{
+				n = p;
+				p = p->mp_Parent;
+			}
+
+			return p;
+		}
+
+		// friend class
+		// to access curr node from tree
+		template<typename T, typename Compare, typename Alloc, template<class> class node_t>
+		friend class tree_base;
+	};
+
+	/// ---------------------------------------------------------------
 	/// Tree base
 	/// ---------------------------------------------------------------
 	/// memory management, compare and node clear when destructed
 
-	template<typename T, typename compare = std::less<T>, typename A = std::allocator<T>>
-		requires Element<T>
+	template<
+		typename T, 
+		typename compare = std::less<T>, 
+		typename A = std::allocator<T>, 
+		template<class> class node_t = node
+	>
 	class tree_base {
 
 	public:
@@ -56,7 +212,7 @@ namespace mstl {
 		using alloc_traits = std::allocator_traits<A>;
 		using size_type = typename alloc_traits::size_type;
 
-		using node_type = node<value_type>;
+		using node_type = node_t<value_type>;
 		using node_alloc = typename alloc_traits::template rebind_alloc<node_type>;
 		using node_traits = std::allocator_traits<node_alloc>;
 
@@ -132,14 +288,15 @@ namespace mstl {
 			this->DoDestroyNode(static_cast<node_type*>(n));
 		}
 
-		template<typename U, typename C, typename A>
-		friend void swap(tree_base<U, C, A>&, tree_base<U, C, A>&) noexcept;
+		template<typename U, typename C, typename A, template<class> class N>
+
+		friend void swap(tree_base<U, C, A, N>&, tree_base<U, C, A, N>&) noexcept;
 	};
 
 	// swap for tree_base
 
-	template<typename T, typename C, typename A>
-	void swap(tree_base<T, C, A>& a, tree_base<T, C, A>& b) noexcept {
+	template<typename U, typename C, typename A, template<class> class N>
+	void swap(tree_base<U, C, A, N>& a , tree_base<U, C, A, N>& b) noexcept {
 		using std::swap;
 		swap(a.m_ValueAlloc, b.m_ValueAlloc);
 		swap(a.m_NodeAlloc, b.m_NodeAlloc);
