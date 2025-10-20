@@ -47,8 +47,6 @@ namespace mstl {
 		// C++20: inherites constructors
 		using base_type::base_type;
 
-	    //bst() = default;
-
 		explicit bst(const alloc_type& a = alloc_type{}, const compare& c = compare{})
 			: base_type(a,c){
 		}

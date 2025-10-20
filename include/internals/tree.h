@@ -21,7 +21,6 @@ namespace mstl {
 	/// ---------------------------------------------------------------
 	/// templated node
 	/// ---------------------------------------------------------------
-	/// [?]: why T&& constructor
 
 	template<typename T>
 	struct node : public node_base {
