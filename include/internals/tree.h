@@ -1,7 +1,12 @@
 #ifndef MSTL_TREE_H
 #define MSTL_TREE_H
 
+#include <type_traits>    // std::remove_cvref_t, std::declval
+#include <functional> 
 #include <memory>
+#include <utility>
+#include <iterator>
+#include <cstddef> 
 
 namespace mstl {
 
@@ -36,6 +41,22 @@ namespace mstl {
 			: node_base{}
 			, m_Val(std::forward<Args>(args)...) {
 		}
+	};
+
+	/// ---------------------------------------------------------------
+	/// Key extractors
+	/// ---------------------------------------------------------------
+
+	// used for set
+	template<typename T>
+	struct identity_key {
+		constexpr const T& operator()(const T& v) const noexcept { return v; }
+	};
+
+	// used for map
+	template<typename Pair>
+	struct first_key {
+		constexpr const auto& operator()(const Pair& p) const noexcept { return p.first; }
 	};
 
 	/// ---------------------------------------------------------------
@@ -106,18 +127,19 @@ namespace mstl {
 	/// usually stateless, avoid lifetime issues
 	/// good for inlining and compiler optimizations
 
-	template <typename NodeT, typename Compare, typename Key>
-	inline node_base* TreeFind(node_base* root, const Key& key, Compare comp) noexcept 
+	template <typename NodeT, typename KeyOfValue, typename Compare, typename Key>
+	inline node_base* TreeFind(node_base* root, const Key& i_key, KeyOfValue key_of_value, Compare comp) noexcept
 	{
 		while (root) 
 		{
-			const auto& val = static_cast<const NodeT*>(root)->m_Val;
+			const auto& val = static_cast<const NodeT*>(root)->m_Val; // could be a pair
+			const auto& ext_key = key_of_value(val);
 
-			if (comp(key, val))
+			if (comp(i_key, ext_key))
 			{
 				root = root->mp_Left;
 			}	
-			else if (comp(val, key))
+			else if (comp(ext_key, i_key))
 			{
 				root = root->mp_Right;
 			}	
@@ -131,16 +153,17 @@ namespace mstl {
 		return nullptr;
 	}
 
-	template <typename NodeT, typename Compare, typename Key>
-	inline node_base* TreeLowerBound(node_base* root, const Key& key, Compare comp) noexcept 
+	template <typename NodeT, typename KeyOfValue, typename Compare, typename Key>
+	inline node_base* TreeLowerBound(node_base* root, const Key& i_key, KeyOfValue key_of_value, Compare comp) noexcept
 	{
 		node_base* res = nullptr;
 
 		while (root) 
 		{
 			const auto& val = static_cast<const NodeT*>(root)->m_Val;
+			const auto& ext_key = key_of_value(val);
 
-			if (!comp(val, key)) 
+			if (!comp(ext_key, i_key))
 			{
 				res = root;
 				root = root->mp_Left;
@@ -153,16 +176,17 @@ namespace mstl {
 		return res;
 	}
 
-	template <typename NodeT, typename Compare, typename Key>
-	inline node_base* TreeUpperBound(node_base* root, const Key& key, Compare comp) noexcept 
+	template <typename NodeT, typename KeyOfValue, typename Compare, typename Key>
+	inline node_base* TreeUpperBound(node_base* root, const Key& i_key, KeyOfValue key_of_value, Compare comp) noexcept
 	{
 		node_base* res = nullptr;
 
 		while (root) 
 		{
 			const auto& val = static_cast<const NodeT*>(root)->m_Val;
+			const auto& ext_key = key_of_value(val);
 
-			if (comp(key, val)) 
+			if (comp(i_key, ext_key))
 			{
 				res = root;
 				root = root->mp_Left;
@@ -247,7 +271,7 @@ namespace mstl {
 
 		// friend class
 		// to access curr node from tree
-		template<typename T, typename Compare, typename Alloc, template<class> class node_t>
+		template<typename T, template<class> class NodeT, typename KeyOfValue, typename Compare, typename A>
 		friend class tree_base;
 
 		// all specializations 
@@ -265,34 +289,40 @@ namespace mstl {
 	/// ---------------------------------------------------------------
 
 	template<
-		typename T, 
-		typename compare = std::less<T>, 
-		typename A = std::allocator<T>, 
-		template<class> class node_t = node
-	>
+		typename T,
+		template<class> class NodeT = node,
+		typename KeyOfValue = identity_key<T>,
+		typename compare = std::less<
+			std::remove_cvref_t<decltype(std::declval<KeyOfValue>()(std::declval<const T&>()))>>,
+		typename A = std::allocator<T>
+		>
 	class tree_base {
 
 	public:
 
-		using value_type      = typename node_t<T>::value_type; // supports pair<const K,V>
-		using key_type        = value_type;
+		using value_type      = typename NodeT<T>::value_type; // supports pair<const K,V>
+		using key_type        = std::remove_cvref_t<decltype(std::declval<KeyOfValue>()(std::declval<const value_type&>()))>;
 		using key_compare     = compare;
-		using value_compare   = compare;
+		using value_compare   = key_compare;
 		using alloc_type      = A;
 		using alloc_traits    = std::allocator_traits<A>;
 		using size_type       = typename alloc_traits::size_type;
 		using difference_type = std::ptrdiff_t;
 
-		using node_type   = node_t<value_type>;
+		using node_type   = NodeT<value_type>;
 		using node_alloc  = typename alloc_traits::template rebind_alloc<node_type>;
 		using node_traits = std::allocator_traits<node_alloc>;
+
+		using iterator       = tree_iterator<node_type, false>;
+		using const_iterator = tree_iterator<node_type, true>;
+
 
 		// ============== Ctors =================
 
 		tree_base()
 			: m_ValueAlloc{ alloc_type{} }
 			, m_NodeAlloc{ m_ValueAlloc }
-			, m_Comp{ compare{} }
+			, m_Comp{ key_compare{} }
 			, m_Size{ 0 }
 			, mp_Root{ nullptr } {
 		}
@@ -300,12 +330,12 @@ namespace mstl {
 		explicit tree_base(const alloc_type& i_alloc)
 			: m_ValueAlloc{ i_alloc }
 			, m_NodeAlloc{ m_ValueAlloc }
-			, m_Comp{ compare{} }
+			, m_Comp{ key_compare{} }
 			, m_Size{ 0 }
 			, mp_Root{ nullptr } {
 		}
 
-		explicit tree_base(const alloc_type& i_alloc, const compare& i_comp)
+		explicit tree_base(const alloc_type& i_alloc, const key_compare& i_comp)
 			: m_ValueAlloc{ i_alloc }
 			, m_NodeAlloc{ m_ValueAlloc }
 			, m_Comp{ i_comp }
@@ -317,13 +347,62 @@ namespace mstl {
 
 		~tree_base() { DoClear(); }
 
+		// ============== Iterators =================
+
+		iterator begin() noexcept { return iterator{ mstl::TreeMin(mp_Root) }; }
+		const_iterator begin() const noexcept { return const_iterator{ mstl::TreeMin(mp_Root) }; }
+		const_iterator cbegin() const noexcept { return const_iterator{ mstl::TreeMin(mp_Root) }; }
+
+		iterator end() noexcept { return iterator{ nullptr }; }
+		const_iterator end() const noexcept { return const_iterator{ nullptr }; }
+		const_iterator cend() const noexcept { return const_iterator{ nullptr }; }
+
+		// ============== Lookups =================
+
+		iterator find(const key_type& key) noexcept {
+			return iterator{ mstl::TreeFind<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+		}
+
+		const_iterator find(const key_type& key) const noexcept {
+			return const_iterator{ mstl::TreeFind<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+		}
+
+		iterator lower_bound(const key_type& key) noexcept {
+			return iterator{ mstl::TreeLowerBound<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+		}
+
+		const_iterator lower_bound(const key_type& key) const noexcept {
+			return const_iterator{ mstl::TreeLowerBound<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+		}
+
+		iterator upper_bound(const key_type& key) noexcept {
+			return iterator{ mstl::TreeUpperBound<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+		}
+
+		const_iterator upper_bound(const key_type& key) const noexcept {
+			return const_iterator{ mstl::TreeUpperBound<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+		}
+
+		bool contains(const key_type& key) const noexcept {
+			return mstl::TreeFind<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) != nullptr;
+		}
+
+		std::pair<iterator, iterator> equal_range(const key_type& key) noexcept {
+			return { lower_bound(key), upper_bound(key) };
+		}
+
+		std::pair<const_iterator, const_iterator> equal_range(const key_type& key) const noexcept {
+			return { lower_bound(key), upper_bound(key) };
+		}
+
 	protected:
 
 		using base_node_type = node_base;
 
-		[[no_unique_address]] alloc_type m_ValueAlloc{};
-		[[no_unique_address]] node_alloc m_NodeAlloc{ m_ValueAlloc };
-		[[no_unique_address]] compare m_Comp{};
+		[[no_unique_address]] alloc_type  m_ValueAlloc{};
+		[[no_unique_address]] node_alloc  m_NodeAlloc{ m_ValueAlloc };
+		[[no_unique_address]] key_compare m_Comp{};
+		[[no_unique_address]] KeyOfValue  m_KeyExtractor{};
 
 		size_type  m_Size{};
 		node_type* mp_Root{};
@@ -363,22 +442,23 @@ namespace mstl {
 			this->DoDestroyNode(static_cast<node_type*>(n));
 		}
 
-		template<typename U, typename C, typename A, template<class> class N>
-		friend void swap(tree_base<U, C, A, N>&, tree_base<U, C, A, N>&) noexcept;
+		template<typename U, template<class> class N, typename K, typename C, typename A>
+		friend void swap(tree_base<U, N, K, C, A>&, tree_base<U, N, K, C, A>&) noexcept;
 	};
 
 	// swap for tree_base
 
-	template<typename U, typename C, typename A, template<class> class N>
-	void swap(tree_base<U, C, A, N>& a , tree_base<U, C, A, N>& b) noexcept {
+	template<typename U, template<class> class N, typename K, typename C, typename A>
+	void swap(tree_base<U, N, K, C, A>& a, tree_base<U, N, K, C, A>& b) noexcept {
+		
 		using std::swap;
 		swap(a.m_ValueAlloc, b.m_ValueAlloc);
 		swap(a.m_NodeAlloc, b.m_NodeAlloc);
 		swap(a.m_Comp, b.m_Comp);
+		swap(a.m_KeyExtractor, b.m_KeyExtractor);
 		swap(a.m_Size, b.m_Size);
 		swap(a.mp_Root, b.mp_Root);
 	}
-
 }
 
 #endif // !MSTL_TREE_H

@@ -17,14 +17,16 @@ namespace mstl {
 	/// ---------------------------------------------------------------
 
 	template<
-		typename T, 
-		typename compare = std::less<T>, 
-		typename A = std::allocator<T>,
-		template<class> class node_t = node
-	>
-	class bst_tree : public tree_base<T, compare, A, node_t> {
+		typename T,
+		template<class> class NodeT = node,
+		typename KeyOfValue = identity_key<T>,
+		typename compare = std::less<
+			std::remove_cvref_t<decltype(std::declval<KeyOfValue>()(std::declval<const T&>()))>>,
+		typename A = std::allocator<T>
+		>
+		class bst_tree : public tree_base<T, NodeT, KeyOfValue, compare, A> {
 
-		using base_type      = tree_base<T, compare, A, node_t>;
+		using base_type      = tree_base<T, NodeT, KeyOfValue, compare, A>;
 		using node_type      = typename base_type::node_type;
 		using base_node_type = typename base_type::base_node_type;
 		using node_alloc     = typename base_type::node_alloc;
@@ -52,7 +54,7 @@ namespace mstl {
 			: base_type(a,c){
 		}
 
-		template<typename It = std::input_iterator>
+		template<std::input_iterator It>
 		bst_tree(It first, It last, const alloc_type& a = alloc_type{}, const compare& c = compare{})
 			: base_type(a,c)
 		{
@@ -97,57 +99,11 @@ namespace mstl {
 			return *this;
 		}
 
-		// ================= Iterators =================
-
-		iterator begin() noexcept { return iterator{ mstl::TreeMin(this->mp_Root) }; }
-		const_iterator cbegin() const noexcept { return const_iterator{ mstl::TreeMin(this->mp_Root) }; }
-
-		iterator end() noexcept { return iterator{ nullptr }; }
-		const_iterator cend() const noexcept { return const_iterator{ nullptr }; }
-
 		// ================= Capacity =================
 
 		size_type size() const noexcept { return this->m_Size; }
 
 		bool empty() const noexcept { return this->m_Size == 0; }
-
-		// ================= Access =================
-
-		// lookup
-
-		const_iterator find(const key_type& key) const noexcept { 
-			return const_iterator{ mstl::TreeFind<node_type>(this->mp_Root, key, this->m_Comp) };
-		}
-
-		iterator lower_bound(const key_type& key) noexcept { 
-			return iterator{ mstl::TreeLowerBound<node_type>(this->mp_Root, key, this->m_Comp) };
-		}
-
-		const_iterator lower_bound(const key_type& key) const noexcept { 
-			return const_iterator{ mstl::TreeLowerBound<node_type>(this->mp_Root, key, this->m_Comp) };
-		}
-
-		iterator upper_bound(const key_type& key) noexcept { 
-			return iterator{ mstl::TreeUpperBound<node_type>(this->mp_Root, key, this->m_Comp) };
-		}
-
-		const_iterator upper_bound(const key_type& key) const noexcept { 
-			return const_iterator{ mstl::TreeUpperBound<node_type>(this->mp_Root, key, this->m_Comp) };
-		}
-
-		bool contains(const key_type& key) const noexcept {
-			return (mstl::TreeFind<node_type>(this->mp_Root, key, this->m_Comp)) != nullptr;
-		}
-
-		std::pair<iterator, iterator> equal_range(const key_type& key) noexcept {
-			return { mstl::TreeLowerBound<node_type>(this->mp_Root, key, this->m_Comp),
-					 mstl::TreeUpperBound<node_type>(this->mp_Root, key, this->m_Comp) };
-		}
-
-		std::pair<const_iterator, const_iterator> equal_range(const key_type& key) const noexcept {
-			return { mstl::TreeLowerBound<node_type>(this->mp_Root, key, this->m_Comp),
-					 mstl::TreeUpperBound<node_type>(this->mp_Root, key, this->m_Comp) };
-		}
 
 		/// ================= Modifiers =================
 
@@ -182,7 +138,7 @@ namespace mstl {
 		// erase by key
 		size_type erase(const key_type& key) {
 			
-			base_node_type* z = mstl::TreeFind<node_type>(this->mp_Root, key, this->m_Comp);
+			base_node_type* z = mstl::TreeFind<node_type>(this->mp_Root, key, this->m_KeyExtractor, this->m_Comp);
 			if (!z) return 0;
 			erase_node(z);
 			return 1;
@@ -192,7 +148,7 @@ namespace mstl {
 		iterator erase(iterator pos) {
 			
 			base_node_type* z = pos.curr;
-			if (!z) return end();
+			if (!z) return this->end();
 			base_node_type* s = mstl::TreeSuccessor(z);
 			erase_node(z);
 			return iterator{ s };
@@ -415,20 +371,43 @@ namespace mstl {
 
 	// binary operators
 
-	template<typename T, typename compare, typename A>
-	bool operator==(const bst_tree<T, compare, A>& a, const bst_tree<T, compare, A>& b) {
+	template<
+		typename T,
+		template<class> class NodeT,
+		typename KeyOfValue,
+		typename Compare,
+		typename Alloc
+	>
+	bool operator==(const bst_tree<T, NodeT, KeyOfValue, Compare, Alloc>& a,
+		const bst_tree<T, NodeT, KeyOfValue, Compare, Alloc>& b)
+	{
 		if (a.size() != b.size()) return false;
 		return std::equal(a.begin(), a.end(), b.begin(), b.end());
 	}
 
-	template<typename T, typename compare, typename A>
-	bool operator!=(const bst_tree<T, compare, A>& a, const bst_tree<T, compare, A>& b) {
+	template<
+		typename T,
+		template<class> class NodeT,
+		typename KeyOfValue,
+		typename Compare,
+		typename Alloc
+	>
+	bool operator!=(const bst_tree<T, NodeT, KeyOfValue, Compare, Alloc>& a,
+		const bst_tree<T, NodeT, KeyOfValue, Compare, Alloc>& b)
+	{
 		return !(a == b);
 	}
 
-	// utility
-	template<typename T, typename compare, typename A>
-	void swap(bst_tree<T, compare, A>& a, bst_tree<T, compare, A>& b) noexcept {
+	template<
+		typename T,
+		template<class> class NodeT,
+		typename KeyOfValue,
+		typename Compare,
+		typename Alloc
+	>
+	void swap(bst_tree<T, NodeT, KeyOfValue, Compare, Alloc>& a,
+		bst_tree<T, NodeT, KeyOfValue, Compare, Alloc>& b) noexcept
+	{
 		a.swap(b);
 	}
 
