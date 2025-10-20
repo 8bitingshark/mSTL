@@ -48,26 +48,6 @@ void mstl::bst_test()
     t.erase(8);
     std::cout << "\nAfter erase(8)" << "\n";
     t.inorder_print();
-
-    /*
-    // Test copy constructor
-    std::cout << "\n--- Copia dell’albero ---\n";
-    bst<int> copy = t;
-    print_tree_graphic(copy, "Copia del tree originale");
-
-    // Test move semantics
-    std::cout << "\n--- Move assignment ---\n";
-    bst<int> moved;
-    moved = std::move(copy);
-    print_tree_graphic(moved, "Dopo move(copy -> moved)");
-    print_tree_graphic(copy, "Copia (dovrebbe essere vuota)");
-
-    // Inserimento duplicato
-    std::cout << "\n--- Inserimento duplicato (10) ---\n";
-    auto [it, inserted] = moved.insert(10);
-    std::cout << (inserted ? "Inserito" : "Duplicato ignorato") << "\n";
-    print_tree_graphic(moved, "Dopo insert(10)");
-    */
     
     std::cout << "\nTutti i test completati.\n";
 }
