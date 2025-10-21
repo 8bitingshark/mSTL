@@ -1,6 +1,7 @@
 #include "test/tree_test.h"
 #include "internals/binary_search_tree.h"
 #include "internals/avl_tree.h"
+#include "internals/red_black_tree.h"
 #include <vector>
 
 void mstl::bst_test()
@@ -75,4 +76,23 @@ void mstl::avl_test()
     t.insert(5);
     t.erase(6);
     t.inorder_print();
+}
+
+void mstl::rb_test()
+{
+    std::cout << "\n=============================\n";
+    std::cout << "     TEST RED BLACK TREE\n";
+    std::cout << "=============================\n";
+
+    // Base insertion
+    rb_tree<int> t;
+    std::vector<int> values = { 8, 6, 16, 18, 12, 14, 10, 9, 20, 22, 24, 26, 28, 30, 32, 34, 36, 44, 50};
+
+    for (int v : values) {
+        t.insert(v);
+    }
+
+    t.inorder_print();
+
+    std::cout << (t.IsRBTree() ? "\nSuccess!!!" : "\nWrong!!") << std::endl;
 }

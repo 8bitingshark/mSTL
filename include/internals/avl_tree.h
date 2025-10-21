@@ -197,9 +197,6 @@ namespace mstl {
 			template<typename U>
 			std::pair<base_node_type*, bool> insert_impl(U&& v)
 			{
-				/*node_type* parent = nullptr;
-				node_type* current = static_cast<node_type*>(this->mp_Root);*/
-
 				base_node_type* parent = nullptr;
 				base_node_type* current = this->mp_Root;
 

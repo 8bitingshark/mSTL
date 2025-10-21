@@ -5,6 +5,7 @@ namespace mstl {
 
 	void bst_test();
 	void avl_test();
+	void rb_test();
 }
 
 #endif // !MSTL_BST_TEST_H

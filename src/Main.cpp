@@ -5,7 +5,8 @@ int main() {
 
 	//mstl::list_test();
 	//mstl::bst_test();
-	mstl::avl_test();
-	
+	//mstl::avl_test();
+	mstl::rb_test();
+
 	return 0;
 }

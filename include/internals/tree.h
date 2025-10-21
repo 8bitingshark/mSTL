@@ -164,7 +164,7 @@ namespace mstl {
 	// both returns the root of the subtree passed
 
 	template <typename BaseNodeT>
-	inline node_base* TreeRotateLeft(BaseNodeT* x) noexcept {
+	inline  BaseNodeT* TreeRotateLeft(BaseNodeT* x) noexcept {
 
 		BaseNodeT* y = x->mp_Right;
 		BaseNodeT* w = y ? y->mp_Left : nullptr;
@@ -545,7 +545,7 @@ namespace mstl {
 
 	private:
 
-		void ClearRec(node_base* n) noexcept {
+		void ClearRec(base_node_type* n) noexcept {
 			if (!n) return;
 
 			ClearRec(n->mp_Left);
