@@ -138,7 +138,7 @@ namespace mstl {
 		// erase by key
 		size_type erase(const key_type& key) {
 			
-			base_node_type* z = mstl::TreeFind<node_type>(this->mp_Root, key, this->m_KeyExtractor, this->m_Comp);
+			base_node_type* z = mstl::TreeFind<node_type, base_node_type>(this->mp_Root, key, this->m_KeyExtractor, this->m_Comp);
 			if (!z) return 0;
 			erase_node(z);
 			return 1;
@@ -149,7 +149,7 @@ namespace mstl {
 			
 			base_node_type* z = pos.curr;
 			if (!z) return this->end();
-			base_node_type* s = mstl::TreeSuccessor(z);
+			base_node_type* s = mstl::TreeSuccessor<base_node_type>(z);
 			erase_node(z);
 			return iterator{ s };
 		}
@@ -260,11 +260,11 @@ namespace mstl {
 			// case 1,2
 			if (!z->mp_Left)
 			{
-				mstl::TreeTransplant(this->mp_Root, z, z->mp_Right); // if nullptr ok
+				mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, z, z->mp_Right); // if nullptr ok
 			}
 			else if (!z->mp_Right)
 			{
-				mstl::TreeTransplant(this->mp_Root, z, z->mp_Left);
+				mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, z, z->mp_Left);
 			}
 			else
 			{
@@ -274,7 +274,7 @@ namespace mstl {
 				// child of z, otherwise it is a left
 				// child
 
-				base_node_type* s = mstl::TreeSuccessor(z);
+				base_node_type* s = mstl::TreeSuccessor<base_node_type>(z);
 
 				if (s->mp_Parent != z)
 				{
@@ -282,7 +282,7 @@ namespace mstl {
 					// replace s with its right child
 					// successor can't have left child
 					// otherwise it wouldn't be the successor
-					mstl::TreeTransplant(this->mp_Root, s, s->mp_Right);
+					mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, s, s->mp_Right);
 
 					// transfer z right subtree to s right subtree
 					// s doesn't have left child for now 
@@ -296,7 +296,7 @@ namespace mstl {
 
 				// now substitute z with successor
 				// and attach z left subtree to s
-				mstl::TreeTransplant(this->mp_Root, z, s);
+				mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, z, s);
 
 				s->mp_Left = z->mp_Left;
 				if (s->mp_Left)

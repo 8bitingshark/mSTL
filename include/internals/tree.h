@@ -31,6 +31,8 @@ namespace mstl {
 	struct node : public node_base {
 
 		using value_type = T;
+		using base_type = node_base;
+
 		T m_Val{};
 
 		explicit node(const T& v) : node_base{}, m_Val(v) {}
@@ -65,7 +67,8 @@ namespace mstl {
 	/// put them here since they are indipendent 
 	/// from tree implementation
 
-	inline node_base* TreeMin(node_base* node) noexcept {
+	template <typename BaseNodeT>
+	inline BaseNodeT* TreeMin(BaseNodeT* node) noexcept {
 		
 		while (node && node->mp_Left)
 		{
@@ -74,7 +77,8 @@ namespace mstl {
 		return node;
 	}
 
-	inline node_base* TreeMax(node_base* node) noexcept {
+	template <typename BaseNodeT>
+	inline BaseNodeT* TreeMax(BaseNodeT* node) noexcept {
 
 		while (node && node->mp_Right)
 		{
@@ -83,7 +87,8 @@ namespace mstl {
 		return node;
 	}
 
-	inline node_base* TreeSuccessor(node_base* n) noexcept {
+	template <typename BaseNodeT>
+	inline BaseNodeT* TreeSuccessor(BaseNodeT* n) noexcept {
 
 		if (!n) return nullptr;
 
@@ -105,7 +110,8 @@ namespace mstl {
 		return p;
 	}
 
-	inline node_base* TreePredecessor(node_base* n) noexcept {
+	template <typename BaseNodeT>
+	inline BaseNodeT* TreePredecessor(BaseNodeT* n) noexcept {
 
 		if (!n) return nullptr;
 
@@ -126,8 +132,8 @@ namespace mstl {
 	}
 
 	// Tree Transplant
-	template <typename RootNodeT>
-	inline void TreeTransplant(RootNodeT*& root, node_base* a, node_base* b) noexcept
+	template <typename RootNodeT, typename BaseNodeT>
+	inline void TreeTransplant(RootNodeT*& root, BaseNodeT* a, BaseNodeT* b) noexcept
 	{
 		if (!a) return;
 
@@ -157,10 +163,11 @@ namespace mstl {
 	// Tree Rotations
 	// both returns the root of the subtree passed
 
-	inline node_base* TreeRotateLeft(node_base* x) noexcept {
+	template <typename BaseNodeT>
+	inline node_base* TreeRotateLeft(BaseNodeT* x) noexcept {
 
-		node_base* y = x->mp_Right;
-		node_base* w = y ? y->mp_Left : nullptr;
+		BaseNodeT* y = x->mp_Right;
+		BaseNodeT* w = y ? y->mp_Left : nullptr;
 
 		x->mp_Right = w;
 
@@ -192,10 +199,11 @@ namespace mstl {
 		return y;
 	}
 
-	inline node_base* TreeRotateRight(node_base* x) noexcept {
+	template <typename BaseNodeT>
+	inline BaseNodeT* TreeRotateRight(BaseNodeT* x) noexcept {
 
-		node_base* y = x->mp_Left;
-		node_base* w = y ? y->mp_Right : nullptr;
+		BaseNodeT* y = x->mp_Left;
+		BaseNodeT* w = y ? y->mp_Right : nullptr;
 
 		x->mp_Left  = w;
 
@@ -231,8 +239,8 @@ namespace mstl {
 	/// usually stateless, avoid lifetime issues
 	/// good for inlining and compiler optimizations
 
-	template <typename NodeT, typename KeyOfValue, typename Compare, typename Key>
-	inline node_base* TreeFind(node_base* root, const Key& i_key, KeyOfValue key_of_value, Compare comp) noexcept
+	template <typename NodeT, typename BaseNodeT, typename KeyOfValue, typename Compare, typename Key>
+	inline BaseNodeT* TreeFind(BaseNodeT* root, const Key& i_key, KeyOfValue key_of_value, Compare comp) noexcept
 	{
 		while (root) 
 		{
@@ -257,10 +265,10 @@ namespace mstl {
 		return nullptr;
 	}
 
-	template <typename NodeT, typename KeyOfValue, typename Compare, typename Key>
-	inline node_base* TreeLowerBound(node_base* root, const Key& i_key, KeyOfValue key_of_value, Compare comp) noexcept
+	template <typename NodeT, typename BaseNodeT, typename KeyOfValue, typename Compare, typename Key>
+	inline BaseNodeT* TreeLowerBound(BaseNodeT* root, const Key& i_key, KeyOfValue key_of_value, Compare comp) noexcept
 	{
-		node_base* res = nullptr;
+		BaseNodeT* res = nullptr;
 
 		while (root) 
 		{
@@ -280,10 +288,10 @@ namespace mstl {
 		return res;
 	}
 
-	template <typename NodeT, typename KeyOfValue, typename Compare, typename Key>
-	inline node_base* TreeUpperBound(node_base* root, const Key& i_key, KeyOfValue key_of_value, Compare comp) noexcept
+	template <typename NodeT, typename BaseNodeT, typename KeyOfValue, typename Compare, typename Key>
+	inline BaseNodeT* TreeUpperBound(BaseNodeT* root, const Key& i_key, KeyOfValue key_of_value, Compare comp) noexcept
 	{
-		node_base* res = nullptr;
+		BaseNodeT* res = nullptr;
 
 		while (root) 
 		{
@@ -311,8 +319,8 @@ namespace mstl {
 	template<typename node_t, bool IsConst>
 	class tree_iterator {
 
-		using base_node_type = node_base;
 		using node_type = node_t;
+		using base_node_type = typename node_type::base_type;
 
 		base_node_type* curr{};
 
@@ -453,9 +461,9 @@ namespace mstl {
 
 		// ============== Iterators =================
 
-		iterator begin() noexcept { return iterator{ mstl::TreeMin(mp_Root) }; }
-		const_iterator begin() const noexcept { return const_iterator{ mstl::TreeMin(mp_Root) }; }
-		const_iterator cbegin() const noexcept { return const_iterator{ mstl::TreeMin(mp_Root) }; }
+		iterator begin() noexcept { return iterator{ mstl::TreeMin<base_node_type>(mp_Root) }; }
+		const_iterator begin() const noexcept { return const_iterator{ mstl::TreeMin<base_node_type>(mp_Root) }; }
+		const_iterator cbegin() const noexcept { return const_iterator{ mstl::TreeMin<base_node_type>(mp_Root) }; }
 
 		iterator end() noexcept { return iterator{ nullptr }; }
 		const_iterator end() const noexcept { return const_iterator{ nullptr }; }
@@ -464,31 +472,31 @@ namespace mstl {
 		// ============== Lookups =================
 
 		iterator find(const key_type& key) noexcept {
-			return iterator{ mstl::TreeFind<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+			return iterator{ mstl::TreeFind<node_type, base_node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
 		}
 
 		const_iterator find(const key_type& key) const noexcept {
-			return const_iterator{ mstl::TreeFind<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+			return const_iterator{ mstl::TreeFind<node_type, base_node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
 		}
 
 		iterator lower_bound(const key_type& key) noexcept {
-			return iterator{ mstl::TreeLowerBound<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+			return iterator{ mstl::TreeLowerBound<node_type, base_node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
 		}
 
 		const_iterator lower_bound(const key_type& key) const noexcept {
-			return const_iterator{ mstl::TreeLowerBound<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+			return const_iterator{ mstl::TreeLowerBound<node_type, base_node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
 		}
 
 		iterator upper_bound(const key_type& key) noexcept {
-			return iterator{ mstl::TreeUpperBound<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+			return iterator{ mstl::TreeUpperBound<node_type, base_node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
 		}
 
 		const_iterator upper_bound(const key_type& key) const noexcept {
-			return const_iterator{ mstl::TreeUpperBound<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
+			return const_iterator{ mstl::TreeUpperBound<node_type, base_node_type>(mp_Root, key, m_KeyExtractor, m_Comp) };
 		}
 
 		bool contains(const key_type& key) const noexcept {
-			return mstl::TreeFind<node_type>(mp_Root, key, m_KeyExtractor, m_Comp) != nullptr;
+			return mstl::TreeFind<node_type, base_node_type>(mp_Root, key, m_KeyExtractor, m_Comp) != nullptr;
 		}
 
 		std::pair<iterator, iterator> equal_range(const key_type& key) noexcept {
@@ -501,7 +509,7 @@ namespace mstl {
 
 	protected:
 
-		using base_node_type = node_base;
+		using base_node_type = typename node_type::base_type;
 
 		[[no_unique_address]] alloc_type  m_ValueAlloc{};
 		[[no_unique_address]] node_alloc  m_NodeAlloc{ m_ValueAlloc };

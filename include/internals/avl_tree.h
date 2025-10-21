@@ -153,7 +153,7 @@ namespace mstl {
 			// erase by key
 			size_type erase(const key_type& key) {
 
-				base_node_type* z = mstl::TreeFind<node_type>(this->mp_Root, key, this->m_KeyExtractor, this->m_Comp);
+				base_node_type* z = mstl::TreeFind<node_type, base_node_type>(this->mp_Root, key, this->m_KeyExtractor, this->m_Comp);
 				if (!z) return 0;
 				erase_node(z);
 				return 1;
@@ -164,7 +164,7 @@ namespace mstl {
 
 				base_node_type* z = pos.curr;
 				if (!z) return this->end();
-				base_node_type* s = mstl::TreeSuccessor(z);
+				base_node_type* s = mstl::TreeSuccessor<base_node_type>(z);
 				erase_node(z);
 				return iterator{ s };
 			}
@@ -302,7 +302,7 @@ namespace mstl {
 
 			node_type* rotate_left(node_type* n) noexcept {
 
-				node_type* new_root = static_cast<node_type*>(mstl::TreeRotateLeft(n));
+				node_type* new_root = static_cast<node_type*>(mstl::TreeRotateLeft<base_node_type>(n));
 				update_height(n);
 				update_height(new_root);
 				return new_root;
@@ -310,7 +310,7 @@ namespace mstl {
 
 			node_type* rotate_right(node_type* n) noexcept {
 
-				node_type* new_root = static_cast<node_type*>(mstl::TreeRotateRight(n));
+				node_type* new_root = static_cast<node_type*>(mstl::TreeRotateRight<base_node_type>(n));
 				update_height(n);
 				update_height(new_root);
 				return new_root;
@@ -375,17 +375,17 @@ namespace mstl {
 				if (!node_to_remove->mp_Left)
 				{
 					rebalance_from = static_cast<node_type*>(node_to_remove->mp_Parent);
-					mstl::TreeTransplant(this->mp_Root, node_to_remove, node_to_remove->mp_Right);
+					mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, node_to_remove, node_to_remove->mp_Right);
 				}
 				else if (!node_to_remove->mp_Right)
 				{
 					rebalance_from = static_cast<node_type*>(node_to_remove->mp_Parent);
-					mstl::TreeTransplant(this->mp_Root, node_to_remove, node_to_remove->mp_Left);
+					mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, node_to_remove, node_to_remove->mp_Left);
 				}
 				else
 				{
 					// case 2 children
-					node_type* s = static_cast<node_type*>(mstl::TreeSuccessor(node_to_remove));
+					node_type* s = static_cast<node_type*>(mstl::TreeSuccessor<base_node_type>(node_to_remove));
 
 					// node where start rebalance
 					if (s->mp_Parent == node_to_remove)
@@ -403,7 +403,7 @@ namespace mstl {
 						// replace s with its right child
 						// successor can't have left child
 						// otherwise it wouldn't be the successor
-						mstl::TreeTransplant(this->mp_Root, s, s->mp_Right);
+						mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, s, s->mp_Right);
 
 						// transfer z right subtree to s right subtree
 						// s doesn't have left child for now 
@@ -415,7 +415,7 @@ namespace mstl {
 						s->mp_Right->mp_Parent = s;
 					}
 
-					mstl::TreeTransplant(this->mp_Root, node_to_remove, s);
+					mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, node_to_remove, s);
 
 					s->mp_Left = node_to_remove->mp_Left;
 					if (s->mp_Left)
