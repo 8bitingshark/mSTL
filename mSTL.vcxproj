@@ -127,7 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\test\bst_test.cpp" />
+    <ClCompile Include="src\test\tree_test.cpp" />
     <ClCompile Include="src\test\list_test.cpp" />
     <ClCompile Include="src\Main.cpp" />
   </ItemGroup>
@@ -140,7 +140,7 @@
     <ClInclude Include="include\mlist.h" />
     <ClInclude Include="include\mmap.h" />
     <ClInclude Include="include\mvector.h" />
-    <ClInclude Include="include\test\bst_test.h" />
+    <ClInclude Include="include\test\tree_test.h" />
     <ClInclude Include="include\test\list_test.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

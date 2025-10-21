@@ -105,7 +105,7 @@ namespace mstl {
 
 		bool empty() const noexcept { return this->m_Size == 0; }
 
-		/// ================= Modifiers =================
+		// ================= Modifiers =================
 
 		void clear() noexcept { this->DoClear(); }
 
@@ -163,13 +163,13 @@ namespace mstl {
 			swap(this->mp_Root, other.mp_Root);
 		}
 
-		/// ================= Observers =================
+		// ================= Observers =================
 
 		const node_type* root() const noexcept { return this->mp_Root; }
 
 		alloc_type get_allocator() const { return this->m_ValueAlloc; }
 
-		/// ================= Utility =================
+		// ================= Utility =================
 
 		void inorder_print() const noexcept {
 			inorder_print_rec(this->mp_Root, nullptr, "root");
@@ -248,33 +248,6 @@ namespace mstl {
 			return n; 
 		}
 
-		/// replace node a with b 
-
-		void transplant(base_node_type* a, base_node_type* b)
-		{
-			//assert(a && b && "[bst_transplant]: nodes must be valid");
-
-			if (!a->mp_Parent)
-			{
-				// a was the root
-				this->mp_Root = static_cast<node_type*>(b);
-			}
-			else if (a == a->mp_Parent->mp_Left)
-			{
-				// a was a left child
-				a->mp_Parent->mp_Left = b;
-			}
-			else
-			{
-				// a was a right child
-				a->mp_Parent->mp_Right = b;
-			}
-
-			// update parent
-
-			if(b) b->mp_Parent = a->mp_Parent;
-		}
-
 		/// We have 3 cases on deletion:
 		/// 1. no children -> delete it
 		/// 2. has 1 child -> replace parent with child
@@ -282,14 +255,16 @@ namespace mstl {
 
 		void erase_node(base_node_type* z)
 		{
+			if (!z) return;
+
 			// case 1,2
 			if (!z->mp_Left)
 			{
-				transplant(z, z->mp_Right); // if nullptr ok
+				mstl::TreeTransplant(this->mp_Root, z, z->mp_Right); // if nullptr ok
 			}
 			else if (!z->mp_Right)
 			{
-				transplant(z, z->mp_Left);
+				mstl::TreeTransplant(this->mp_Root, z, z->mp_Left);
 			}
 			else
 			{
@@ -307,7 +282,7 @@ namespace mstl {
 					// replace s with its right child
 					// successor can't have left child
 					// otherwise it wouldn't be the successor
-					transplant(s, s->mp_Right);
+					mstl::TreeTransplant(this->mp_Root, s, s->mp_Right);
 
 					// transfer z right subtree to s right subtree
 					// s doesn't have left child for now 
@@ -321,7 +296,7 @@ namespace mstl {
 
 				// now substitute z with successor
 				// and attach z left subtree to s
-				transplant(z, s);
+				mstl::TreeTransplant(this->mp_Root, z, s);
 
 				s->mp_Left = z->mp_Left;
 				if (s->mp_Left)

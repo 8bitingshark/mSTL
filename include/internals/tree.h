@@ -62,6 +62,8 @@ namespace mstl {
 	/// ---------------------------------------------------------------
 	/// Tree global functions
 	/// ---------------------------------------------------------------
+	/// put them here since they are indipendent 
+	/// from tree implementation
 
 	inline node_base* TreeMin(node_base* node) noexcept {
 		
@@ -121,6 +123,108 @@ namespace mstl {
 		}
 
 		return p;
+	}
+
+	// Tree Transplant
+	template <typename RootNodeT>
+	inline void TreeTransplant(RootNodeT*& root, node_base* a, node_base* b) noexcept
+	{
+		if (!a) return;
+
+		if (!a->mp_Parent)
+		{
+			// a was root
+			root = static_cast<RootNodeT*>(b);
+		}
+		else if (a == a->mp_Parent->mp_Left)
+		{
+			// a was a left child
+			a->mp_Parent->mp_Left = b;
+		}
+		else
+		{
+			// a was a right child
+			a->mp_Parent->mp_Right = b;
+		}
+
+		if (b)
+		{
+			// update parent
+			b->mp_Parent = a->mp_Parent;
+		}
+	}
+
+	// Tree Rotations
+	// both returns the root of the subtree passed
+
+	inline node_base* TreeRotateLeft(node_base* x) noexcept {
+
+		node_base* y = x->mp_Right;
+		node_base* w = y ? y->mp_Left : nullptr;
+
+		x->mp_Right = w;
+
+		if (y)
+		{
+			y->mp_Left = x;
+			y->mp_Parent = x->mp_Parent;
+		}
+
+		// adjust parent pointers
+		if (x->mp_Parent)
+		{
+			if (x->mp_Parent->mp_Left == x)
+			{
+				// if x was left child
+				x->mp_Parent->mp_Left = y;
+			}
+			else
+			{
+				// if x was right child
+				x->mp_Parent->mp_Right = y;
+			}	
+		}
+
+		x->mp_Parent = y;
+
+		if (w) w->mp_Parent = x;
+
+		return y;
+	}
+
+	inline node_base* TreeRotateRight(node_base* x) noexcept {
+
+		node_base* y = x->mp_Left;
+		node_base* w = y ? y->mp_Right : nullptr;
+
+		x->mp_Left  = w;
+
+		if (y)
+		{
+			y->mp_Right = x;
+			y->mp_Parent = x->mp_Parent;
+		}
+
+		// adjust parent pointers
+		if (x->mp_Parent)
+		{
+			if (x->mp_Parent->mp_Left == x)
+			{
+				// if x was left child
+				x->mp_Parent->mp_Left = y;
+			}
+			else
+			{
+				// if x was right child
+				x->mp_Parent->mp_Right = y;
+			}
+		}
+
+		x->mp_Parent = y;
+
+		if (w) w->mp_Parent = x;
+
+		return y;
 	}
 
 	/// Compare passed by-value because
@@ -198,7 +302,7 @@ namespace mstl {
 		}
 		return res;
 	}
-	
+
 	/// ---------------------------------------------------------------
 	/// Tree Iterator
 	/// ---------------------------------------------------------------

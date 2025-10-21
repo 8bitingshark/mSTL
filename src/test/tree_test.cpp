@@ -1,5 +1,6 @@
-#include "test/bst_test.h"
+#include "test/tree_test.h"
 #include "internals/binary_search_tree.h"
+#include "internals/avl_tree.h"
 #include <vector>
 
 void mstl::bst_test()
@@ -50,4 +51,28 @@ void mstl::bst_test()
     t.inorder_print();
     
     std::cout << "\nTutti i test completati.\n";
+}
+
+void mstl::avl_test()
+{
+    std::cout << "\n=============================\n";
+    std::cout << "     TEST AVL TREE\n";
+    std::cout << "=============================\n";
+
+    // Base insertion
+    avl_tree<int> t;
+    std::vector<int> values = { 8, 4, 10 };
+
+    for (int v : values) {
+        t.insert(v);
+    }
+
+    /*std::cout << "\nAfter insertion: " << "\n";
+    t.inorder_print();*/
+
+    t.insert(6);
+    t.insert(1);
+    t.insert(5);
+    t.erase(6);
+    t.inorder_print();
 }
