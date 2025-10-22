@@ -18,10 +18,10 @@
     <ClCompile Include="src\Main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\test\bst_test.cpp">
+    <ClCompile Include="src\test\tree_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\list_test.cpp">
+    <ClCompile Include="src\test\list_test.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -47,13 +47,16 @@
     <ClInclude Include="include\test\list_test.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\test\bst_test.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="include\internals\avl_tree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\internals\tree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\test\tree_test.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\mset.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

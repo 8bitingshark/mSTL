@@ -20,17 +20,16 @@ namespace mstl {
 		typename T,
 		template<class> class NodeT = node,
 		typename KeyOfValue = identity_key<T>,
-		typename compare = std::less<
-			std::remove_cvref_t<decltype(std::declval<KeyOfValue>()(std::declval<const T&>()))>>,
+		typename compare = std::less<std::remove_cvref_t<decltype(std::declval<KeyOfValue>()(std::declval<const T&>()))>>,
 		typename A = std::allocator<T>
-		>
-		class bst_tree : public tree_base<T, NodeT, KeyOfValue, compare, A> {
+	>
+	class bst_tree : public tree_base<T, NodeT, KeyOfValue, compare, A> {
 
-		using base_type      = tree_base<T, NodeT, KeyOfValue, compare, A>;
-		using node_type      = typename base_type::node_type;
-		using base_node_type = typename base_type::base_node_type;
-		using node_alloc     = typename base_type::node_alloc;
-		using node_traits    = typename base_type::node_traits;
+	using base_type      = tree_base<T, NodeT, KeyOfValue, compare, A>;
+	using node_type      = typename base_type::node_type;
+	using base_node_type = typename base_type::base_node_type;
+	using node_alloc     = typename base_type::node_alloc;
+	using node_traits    = typename base_type::node_traits;
 
 	public:
 

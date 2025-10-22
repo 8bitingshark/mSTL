@@ -139,6 +139,7 @@
     <ClInclude Include="include\internals\tree.h" />
     <ClInclude Include="include\mlist.h" />
     <ClInclude Include="include\mmap.h" />
+    <ClInclude Include="include\mset.h" />
     <ClInclude Include="include\mvector.h" />
     <ClInclude Include="include\test\tree_test.h" />
     <ClInclude Include="include\test\list_test.h" />

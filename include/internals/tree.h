@@ -404,10 +404,9 @@ namespace mstl {
 		typename T,
 		template<class> class NodeT = node,
 		typename KeyOfValue = identity_key<T>,
-		typename compare = std::less<
-			std::remove_cvref_t<decltype(std::declval<KeyOfValue>()(std::declval<const T&>()))>>,
+		typename compare = std::less<std::remove_cvref_t<decltype(std::declval<KeyOfValue>()(std::declval<const T&>()))>>,
 		typename A = std::allocator<T>
-		>
+	>
 	class tree_base {
 
 	public:
