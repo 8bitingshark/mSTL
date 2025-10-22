@@ -86,11 +86,17 @@ void mstl::rb_test()
 
     // Base insertion
     rb_tree<int> t;
-    std::vector<int> values = { 8, 6, 16, 18, 12, 14, 10, 9, 20, 22, 24, 26, 28, 30, 32, 34, 36, 44, 50};
+    std::vector<int> values = { 10, 5, 15, 20, 22, 3, 8, 7};
 
     for (int v : values) {
         t.insert(v);
     }
+
+    t.erase(5);
+    t.erase(7);
+    t.erase(8);
+    t.erase(10);
+    t.erase(20);
 
     t.inorder_print();
 

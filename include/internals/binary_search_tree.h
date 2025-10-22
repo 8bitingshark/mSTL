@@ -270,9 +270,10 @@ namespace mstl {
 			{
 				// case 3
 
-				// successor is a right child if is a 
+				// I choose to replace with the successor
+				// (successor is a right child if is a 
 				// child of z, otherwise it is a left
-				// child
+				// child).
 
 				base_node_type* s = mstl::TreeSuccessor<base_node_type>(z);
 

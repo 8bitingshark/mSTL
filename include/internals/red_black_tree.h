@@ -166,13 +166,12 @@ namespace mstl {
 				return { iterator{ n }, ok };
 			}
 
-			/*
 			// erase by key
 			size_type erase(const key_type& key)
 			{
 				base_node_type* z = mstl::TreeFind<node_type, base_node_type>(this->mp_Root, key, this->m_KeyExtractor, this->m_Comp);
 				if (!z) return 0;
-				erase_node(static_cast<node_type*>(z));
+				erase_node(z);
 				return 1;
 			}
 
@@ -182,10 +181,9 @@ namespace mstl {
 				base_node_type* z = pos.curr;
 				if (!z) return this->end();
 				base_node_type* s = mstl::TreeSuccessor<base_node_type>(z);
-				erase_node(static_cast<node_type*>(z));
+				erase_node(z);
 				return iterator{ s };
 			}
-			*/
 
 			void swap(rb_tree& other) noexcept
 			{
@@ -396,6 +394,206 @@ namespace mstl {
 				}
 			}
 
+			// For an optimization I can choose a successor or predecessor based on
+			// its color?
+			void erase_node(base_node_type* x)
+			{
+				if (!x) return;
+
+				node_type* node_to_delete = static_cast<node_type*>(x);
+
+				base_node_type* removed_node = x;
+				RBColor rn_original_color = x->m_Color;
+				base_node_type* rn_substitute = nullptr;
+
+				if (!node_to_delete->mp_Left)
+				{
+					rn_substitute = node_to_delete->mp_Right;
+					mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, node_to_delete, node_to_delete->mp_Right);
+				}
+				else if (!node_to_delete->mp_Right)
+				{
+					rn_substitute = node_to_delete->mp_Left;
+					mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, node_to_delete, node_to_delete->mp_Left);
+				}
+				else
+				{
+					// Use the successor
+					base_node_type* s = mstl::TreeSuccessor<base_node_type>(x);
+					
+					removed_node = s;
+					rn_original_color = s->m_Color;
+
+					// successor has at the most one child
+					// and it has no left child, otherwise it wouldn't be
+					// the successor
+
+					rn_substitute = s->mp_Right;
+
+					if (removed_node->mp_Parent == node_to_delete)
+					{
+						if (rn_substitute) rn_substitute->mp_Parent = removed_node;
+					}
+
+					// it isn't a direct child
+					else
+					{
+						mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, s, s->mp_Right);
+
+						s->mp_Right = node_to_delete->mp_Right;
+
+						assert(s->mp_Right && "[bst_erase_node]: case 2 children, right subtree of erased must be valid since successor isn't direct child");
+
+						s->mp_Right->mp_Parent = s;
+					}
+
+					mstl::TreeTransplant<node_type, base_node_type>(this->mp_Root, node_to_delete, s);
+
+					s->mp_Left = node_to_delete->mp_Left;
+					if (s->mp_Left) s->mp_Left->mp_Parent = s;
+
+					// Keep the original color
+					set_color(removed_node, node_to_delete->m_Color);
+				}
+
+				this->DoDestroyNode(node_to_delete);
+				--this->m_Size;
+
+				base_node_type leafSentinel{};
+				leafSentinel.m_Color = RBBk;
+				base_node_type* ptr_leafSentinel = &leafSentinel;
+
+				// check for fix up
+				if (rn_original_color == RBBk)
+				{
+					if (!rn_substitute)
+					{
+						leafSentinel.mp_Parent = removed_node;
+						erase_fixup(ptr_leafSentinel);
+					}
+					else
+					{
+						erase_fixup(rn_substitute);
+					}	
+				}		
+			}
+
+			void erase_fixup(base_node_type* double_black)
+			{
+				while (double_black && double_black->m_Color == RBBk)
+				{
+					// parent of double black
+					base_node_type* px = double_black->mp_Parent;
+
+					// if px is not valid double_black is the root
+					if (!px) break;
+
+					bool IsDBLeftChild = double_black == px->mp_Left ? true : false;
+
+					// brother of double black
+					base_node_type* bx = IsDBLeftChild ? px->mp_Right : px->mp_Left;
+
+					// children of brother
+					base_node_type* sameX{};
+					base_node_type* oppoX{};
+
+					if (bx)
+					{
+						sameX = IsDBLeftChild ? bx->mp_Left : bx->mp_Right;
+						oppoX = IsDBLeftChild ? bx->mp_Right : bx->mp_Left;
+					}
+
+					// worstCase: brother of double_black is red, but the siblings are black
+					if (bx && bx->m_Color == RBRed)
+					{
+						// if px is the root, now it became bx
+						if (!px->mp_Parent) this->mp_Root = static_cast<node_type*>(bx);
+
+						// rotate 
+						if (IsDBLeftChild)
+						{
+							mstl::TreeRotateLeft<base_node_type>(px);
+						}
+						else
+						{
+							mstl::TreeRotateRight<base_node_type>(px);
+						}
+
+						// recolor
+						set_color(px, RBRed);
+						set_color(bx, RBBk);
+
+						// update brother
+						bx = px->mp_Right;
+					}
+
+					// bad case: brother and siblings are black
+					if ((!sameX || (sameX && sameX->m_Color == RBBk))
+						&& (!oppoX || (oppoX && oppoX->m_Color == RBBk)))
+					{
+						set_color(bx, RBRed);
+						double_black = px;
+
+						if (double_black->m_Color == RBRed)
+						{
+							set_color(double_black, RBBk);
+							break;
+						}
+					}
+					else
+					{
+
+						// semi fortunate case: nephew of the same side is red, but the other is black
+
+						if ((sameX && sameX->m_Color == RBRed) && (!oppoX || (oppoX && oppoX->m_Color == RBBk)))
+						{
+							if (IsDBLeftChild)
+							{
+								mstl::TreeRotateRight<base_node_type>(bx);
+							}
+							else
+							{
+								mstl::TreeRotateLeft<base_node_type>(bx);
+							}
+
+							set_color(sameX, RBBk);
+							set_color(bx, RBRed);
+
+							//base_node_type* tmp = sameX;
+							bx = sameX;
+						}
+
+						// technically no need of tests ?
+						// if (oppoX && oppoX->m_Color == RBRed)
+
+						// fortunate case: double_black (uncle) has a RED nephew at the opposite side
+						if (IsDBLeftChild)
+						{
+							mstl::TreeRotateLeft<base_node_type>(px);
+						}
+						else
+						{
+							mstl::TreeRotateRight<base_node_type>(px);
+						}
+
+						// recolor
+						set_color(oppoX, RBBk);
+						set_color(bx, px->m_Color);
+						set_color(px, RBBk);
+						set_color(double_black, RBBk);
+						
+						if (!bx->mp_Parent)
+						{
+							this->mp_Root = static_cast<node_type*>(bx);
+						}
+
+						break;
+					}
+				}
+
+				if (double_black) set_color(double_black, RBBk);
+			}
+
 			// RB_Tree Verification
 
 			bool verify_rb_properties() const noexcept {
@@ -456,7 +654,6 @@ namespace mstl {
 
 				return left_ok && right_ok;
 			}
-
 
 			// Print Utility
 
