@@ -670,22 +670,22 @@ namespace mstl {
 			const node_type* l = static_cast<const node_type*>(node->mp_Left);
 			const node_type* r = static_cast<const node_type*>(node->mp_Right);
 
-			// === Nodo corrente ===
+			// === Current node ===
 			std::cout << "Node ";
 
-			// Se è una pair -> stampa key e value
+			// If is a pair print key and value
 			if constexpr (requires { n->m_Val.first; n->m_Val.second; }) {
 				std::cout << "key: " << n->m_Val.first
 					<< " | value: " << n->m_Val.second;
 			}
-			// Altrimenti stampa il valore singolo (set, list, ecc.)
+			// otherwise single value
 			else {
 				std::cout << "value: " << n->m_Val;
 			}
 
 			std::cout << " (" << relation << ")\n";
 
-			// === Colore ===
+			// === Color ===
 			std::cout << "Color: " << (n->m_Color == RBBk ? "Black" : "Red") << "\n";
 
 			// === Parent ===
